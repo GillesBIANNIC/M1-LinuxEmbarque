@@ -21,6 +21,7 @@ void write_eeprom(unsigned char* buffer, int size, int padding);
 // others
 char convertToAngle(int value);
 void displayBuffer(unsigned char* buffer, int size);
+// 7Seg
 
 /*
 	INIT ALL
@@ -239,4 +240,124 @@ void displayBuffer(unsigned char* buffer, int size) {
 		printf("%c", buffer[i]);
 	}
 	printf("\n");
+}
+
+
+
+/*
+	7SEGMENTS
+*/
+
+void init_7Seg() {
+	FILE* fp = NULL;	// pointeur de fichier
+
+	// init gpio 48 out
+	// clear for 7Seg
+	fp = fopen("/sys/class/gpio/export","w");
+	fprintf(fp,"48");
+	fclose(fp);
+	fp = fopen("/sys/class/gpio/gpio48/direction","w");
+	fprintf(fp,"out");
+	fclose(fp);
+
+	// latch 5
+	// data 4
+	// clock 2
+}
+
+void clear_7Seg()
+{
+	FILE *fp = NULL;
+	fp = fopen("/sys/class/gpio/gpio48/value","w");
+	fprintf(fp,"0");
+	fclose(fp);
+	fp = fopen("/sys/class/gpio/gpio48/value","w");
+	fprintf(fp,"1");
+	fclose(fp);
+}
+
+void clock_beat_7Seg() {
+	FILE* fp = NULL;
+	fp = fopen("/sys/class/gpio/gpio2/value","w");
+	fprintf(fp,"1");
+	fclose(fp);
+	fp = fopen("/sys/class/gpio/gpio2/value","w");
+	fprintf(fp,"0");
+	fclose(fp);
+}
+
+void latch_beat_7Seg() {
+	FILE* fp = NULL;
+	fp = fopen("/sys/class/gpio/gpio5/value","w");
+	fprintf(fp,"1");
+	fclose(fp);
+	fp = fopen("/sys/class/gpio/gpio5/value","w");
+	fprintf(fp,"0");
+	fclose(fp);
+}
+
+void display_on_7Seg(char c, char dot) {
+	char nb0[8] = "00000011";
+	char nb1[8] = "10011111";
+	char nb2[8] = "00100101";
+	char nb3[8] = "00001101";
+	char nb4[8] = "10011001";
+	char nb5[8] = "01001001";
+	char nb6[8] = "01000001";
+	char nb7[8] = "00011111";
+	char nb8[8] = "00000001";
+	char nb9[8] = "00001001";
+	char* number = nb0;
+
+	switch (c) {
+		case '0':
+			number = nb0;
+			break;
+		case '1':
+			number = nb1;
+			break;
+		case '2':
+			number = nb2;
+			break;
+		case '3':
+			number = nb3;
+			break;
+		case '4':
+			number = nb4;
+			break;
+		case '5':
+			number = nb5;
+			break;
+		case '6':
+			number = nb6;
+			break;
+		case '7':
+			number = nb7;
+			break;
+		case '8':
+			number = nb8;
+			break;
+		case '9':
+			number = nb9;
+	}
+
+	// dot or not
+	if(dot == 'y' || dot == '.') {
+		number[7] = '0';
+	}
+	else {
+		number[7] = '1';
+	}
+
+	FILE* fp = NULL;	// pointeur de fichier
+	int i;
+	for(i=7; i>=0; i--)
+	{
+		fp = fopen("/sys/class/gpio/gpio4/value","w");
+		fprintf(fp,"%c",number[i]);
+		fclose(fp);
+		clock_beat_7Seg();
+	}
+
+	latch_beat_7Seg();
 }
